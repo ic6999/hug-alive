@@ -20,6 +20,6 @@ jobs:
         run: |
           response=$(curl -X POST \
           -H "Authorization: Bearer $HF_TOKEN" \
-          "https://huggingface.co/api/spaces/$ic6/hug2/restart")
+          "https://huggingface.co/api/spaces/ic6/hug2/restart")
           echo "Restart API Response: $response"
   
