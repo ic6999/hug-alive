@@ -1,0 +1,44 @@
+name: Auto Refresh Hugging Face Space
+
+on:
+  schedule:
+    - cron: '0 */6 * * *'  # 每6小时运行一次，UTC时间。请根据需要调整cron表达式。
+  workflow_dispatch:       # 允许手动触发工作流
+
+jobs:
+  refresh-space:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v3
+
+      - name: Restart Space via API
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          # 请修改为你的Space地址，格式为 "用户名或组织名/空间名"
+          REPO_ID: "your-username/your-space-name"
+        run: |
+          response=$(curl -X POST \
+          -H "Authorization: Bearer $HF_TOKEN" \
+          "https://huggingface.co/api/spaces/$REPO_ID/restart")
+          echo "Restart API Response: $response"
+
+  # 另一种方式：通过Git推送更新Space (可选，根据需求使用)
+  update-space:
+    runs-on: ubuntu-latest
+    needs: refresh-space # 可以依赖于前一个任务，也可以设置为独立任务
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Configure Git
+        run: |
+          git config --global user.name "GitHub Actions Bot"
+          git config --global user.email "actions@users.noreply.github.com"
+
+      - name: Commit empty commit to trigger update
+        run: |
+          git commit --allow-empty -m "Scheduled empty commit to trigger Space update"
+          git push
