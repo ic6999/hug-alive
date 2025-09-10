@@ -14,34 +14,46 @@ jobs:
 
       - name: Check Hugging Face Login Status
         env:
-          JUPYTER_TOKEN: ${{ secrets.JUPYTER_TOKEN }}  # ✅ 保持使用 JUPYTER_TOKEN
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}  # 确保使用正确的secret名称
         run: |
-          # 使用 token 查询用户信息验证登录状态
-          user_info=$(curl -s -H "Authorization: Bearer $JUPYTER_TOKEN" \  # ✅ 这里改为 JUPYTER_TOKEN
+          echo "Testing HF token validity..."
+          # 添加详细的调试信息
+          user_info=$(curl -s -w "\nHTTP_CODE:%{http_code}" \
+            -H "Authorization: Bearer $HF_TOKEN" \
             "https://huggingface.co/api/whoami")
-          echo "User Info: $user_info"
           
-          # 检查是否包含有效用户信息确认登录成功
-          if echo "$user_info" | grep -q '"name"'; then
+          # 提取HTTP状态码和响应内容
+          http_code=$(echo "$user_info" | grep "HTTP_CODE:" | cut -d':' -f2)
+          response_content=$(echo "$user_info" | sed '/HTTP_CODE:/d')
+          
+          echo "HTTP Status Code: $http_code"
+          echo "Response Content: $response_content"
+          
+          # 检查HTTP状态码和响应内容
+          if [ "$http_code" = "200" ] && echo "$response_content" | grep -q '"name"'; then
             echo "✅ Hugging Face login successful"
           else
             echo "❌ Hugging Face login failed"
+            echo "Please check:"
+            echo "1. HF_TOKEN secret is correctly set in GitHub Secrets"
+            echo "2. Token has correct permissions (at least read)"
+            echo "3. Token is valid and not expired"
             exit 1
           fi
 
       - name: Query Space Status
         env:
-          JUPYTER_TOKEN: ${{ secrets.JUPYTER_TOKEN }}  # ✅ 这里改为 JUPYTER_TOKEN
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
           REPO_ID: "ic6/kk"  # 你的 Space 地址
         run: |
           # 查询 Space 状态信息
-          space_info=$(curl -s -H "Authorization: Bearer $JUPYTER_TOKEN" \  # ✅ 这里改为 JUPYTER_TOKEN
+          space_info=$(curl -s -H "Authorization: Bearer $HF_TOKEN" \
             "https://huggingface.co/api/spaces/$REPO_ID")
           echo "Space Status Info: $space_info"
           
           # 提取并显示关键状态信息
-          space_id=$(echo "$space_info" | grep -o '"id":"[^"]*' | cut -d'"' -f4)
-          space_state=$(echo "$space_info" | grep -o '"state":"[^"]*' | cut -d'"' -f4)
+          space_id=$(echo "$space_info" | grep -o '"id":"[^"]*' | cut -d'"' -f4 || echo "unknown")
+          space_state=$(echo "$space_info" | grep -o '"state":"[^"]*' | cut -d'"' -f4 || echo "unknown")
           space_runtime=$(echo "$space_info" | grep -o '"runtime":{[^}]*' | grep -o '"stage":"[^"]*' | cut -d'"' -f4 || echo "unknown")
           
           echo "Space ID: $space_id"
@@ -54,3 +66,4 @@ jobs:
           else
             echo "⚠️  Space state: $space_state"
           fi
+^
