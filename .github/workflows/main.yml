@@ -1,68 +1,19 @@
-name: Check Hugging Face Space Status
+name: Prevent HF Space Sleep
 
 on:
   schedule:
-    - cron: '0 10 * * *'  # 每天 UTC 时间 10:00 运行
-  workflow_dispatch:       # 允许手动触发工作流
+    - cron: '0 */6 * * *'  # 最重要的部分：每6小时运行一次（可根据需要调整）
+  workflow_dispatch:        # 允许手动触发
 
 jobs:
-  check-space-status:
+  ping-space:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v3
-
-      - name: Check Hugging Face Login Status
+      - name: Ping Hugging Face Space
         env:
-          HF_TOKEN: ${{ secrets.HF_TOKEN }}  # 确保使用正确的secret名称
+          HF_TOKEN: ${{ secrets.HF_TOKEN }} # 你的访问令牌
+          SPACE_URL: "https://huggingface.co/spaces/ic6/kk" # 你的空间地址
         run: |
-          echo "Testing HF token validity..."
-          # 添加详细的调试信息
-          user_info=$(curl -s -w "\nHTTP_CODE:%{http_code}" \
-            -H "Authorization: Bearer $HF_TOKEN" \
-            "https://huggingface.co/api/whoami")
-          
-          # 提取HTTP状态码和响应内容
-          http_code=$(echo "$user_info" | grep "HTTP_CODE:" | cut -d':' -f2)
-          response_content=$(echo "$user_info" | sed '/HTTP_CODE:/d')
-          
-          echo "HTTP Status Code: $http_code"
-          echo "Response Content: $response_content"
-          
-          # 检查HTTP状态码和响应内容
-          if [ "$http_code" = "200" ] && echo "$response_content" | grep -q '"name"'; then
-            echo "✅ Hugging Face login successful"
-          else
-            echo "❌ Hugging Face login failed"
-            echo "Please check:"
-            echo "1. HF_TOKEN secret is correctly set in GitHub Secrets"
-            echo "2. Token has correct permissions (at least read)"
-            echo "3. Token is valid and not expired"
-            exit 1
-          fi
-
-      - name: Query Space Status
-        env:
-          HF_TOKEN: ${{ secrets.HF_TOKEN }}
-          REPO_ID: "ic6/kk"  # 你的 Space 地址
-        run: |
-          # 查询 Space 状态信息
-          space_info=$(curl -s -H "Authorization: Bearer $HF_TOKEN" \
-            "https://huggingface.co/api/spaces/$REPO_ID")
-          echo "Space Status Info: $space_info"
-          
-          # 提取并显示关键状态信息
-          space_id=$(echo "$space_info" | grep -o '"id":"[^"]*' | cut -d'"' -f4 || echo "unknown")
-          space_state=$(echo "$space_info" | grep -o '"state":"[^"]*' | cut -d'"' -f4 || echo "unknown")
-          space_runtime=$(echo "$space_info" | grep -o '"runtime":{[^}]*' | grep -o '"stage":"[^"]*' | cut -d'"' -f4 || echo "unknown")
-          
-          echo "Space ID: $space_id"
-          echo "Current State: $space_state"
-          echo "Runtime Stage: $space_runtime"
-          
-          # 检查 Space 是否处于正常运行状态
-          if [ "$space_state" = "Running" ] || [ "$space_state" = "Built" ]; then
-            echo "✅ Space is in healthy state: $space_state"
-          else
-            echo "⚠️  Space state: $space_state"
-          fi
+          # 简单地访问你的Space首页，Token会证明你的身份
+          curl -s -L -H "Authorization: Bearer $HF_TOKEN" "$SPACE_URL" > /dev/null
+          echo "$(date): Pinged Space to prevent sleep."
