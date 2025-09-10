@@ -1,24 +1,56 @@
-name: Auto Refresh Hugging Face Space
+name: Check Hugging Face Space Status
 
 on:
   schedule:
-    - cron: '0 10 * * *'  # 
+    - cron: '0 10 * * *'  # 每天 UTC 时间 10:00 运行
   workflow_dispatch:       # 允许手动触发工作流
 
 jobs:
-  refresh-space:
+  check-space-status:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Restart Space via API
+      - name: Check Hugging Face Login Status
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
-          # 请修改为你的Space地址，格式为 "用户名或组织名/空间名"
-          REPO_ID: "ic6/h1"
         run: |
-          response=$(curl -X POST \
-          -H "Authorization: Bearer $HF_TOKEN" \
-          "https://huggingface.co/api/spaces/$REPO_ID/restart")
-          echo "Restart API Response: $response"
+          # 使用 token 查询用户信息验证登录状态
+          user_info=$(curl -s -H "Authorization: Bearer $HF_TOKEN" \
+            "https://huggingface.co/api/whoami")
+          echo "User Info: $user_info"
+          
+          # 检查是否包含有效用户信息确认登录成功
+          if echo "$user_info" | grep -q '"name"'; then
+            echo "✅ Hugging Face login successful"
+          else
+            echo "❌ Hugging Face login failed"
+            exit 1
+          fi
+
+      - name: Query Space Status
+        env:
+          HF_TOKEN: ${{ secrets.HF_TOKEN }}
+          REPO_ID: "ic6/h1"  # 你的 Space 地址
+        run: |
+          # 查询 Space 状态信息
+          space_info=$(curl -s -H "Authorization: Bearer $HF_TOKEN" \
+            "https://huggingface.co/api/spaces/$REPO_ID")
+          echo "Space Status Info: $space_info"
+          
+          # 提取并显示关键状态信息
+          space_id=$(echo "$space_info" | grep -o '"id":"[^"]*' | cut -d'"' -f4)
+          space_state=$(echo "$space_info" | grep -o '"state":"[^"]*' | cut -d'"' -f4)
+          space_runtime=$(echo "$space_info" | grep -o '"runtime":{[^}]*' | grep -o '"stage":"[^"]*' | cut -d'"' -f4 || echo "unknown")
+          
+          echo "Space ID: $space_id"
+          echo "Current State: $space_state"
+          echo "Runtime Stage: $space_runtime"
+          
+          # 检查 Space 是否处于正常运行状态
+          if [ "$space_state" = "Running" ] || [ "$space_state" = "Built" ]; then
+            echo "✅ Space is in healthy state: $space_state"
+          else
+            echo "⚠️  Space state: $space_state"
+          fi
