@@ -16,7 +16,7 @@ jobs:
         env:
           HF_TOKEN: ${{ secrets.HF_TOKEN }}
           # 请修改为你的Space地址，格式为 "用户名或组织名/空间名"
-          REPO_ID: "ic6/hug2"
+          REPO_ID: "ic6/h1"
         run: |
           response=$(curl -X POST \
           -H "Authorization: Bearer $HF_TOKEN" \
