@@ -14,10 +14,10 @@ jobs:
 
       - name: Check Hugging Face Login Status
         env:
-          JUPYTER_TOKEN: ${{ secrets.JUPYTER_TOKEN }}
+          JUPYTER_TOKEN: ${{ secrets.JUPYTER_TOKEN }}  # ✅ 保持使用 JUPYTER_TOKEN
         run: |
           # 使用 token 查询用户信息验证登录状态
-          user_info=$(curl -s -H "Authorization: Bearer $JUPYTER_TOKEN" \
+          user_info=$(curl -s -H "Authorization: Bearer $JUPYTER_TOKEN" \  # ✅ 这里改为 JUPYTER_TOKEN
             "https://huggingface.co/api/whoami")
           echo "User Info: $user_info"
           
@@ -31,11 +31,11 @@ jobs:
 
       - name: Query Space Status
         env:
-          JUPYTER_TOKEN: ${{ secrets.JUPYTER_TOKEN }}
+          JUPYTER_TOKEN: ${{ secrets.JUPYTER_TOKEN }}  # ✅ 这里改为 JUPYTER_TOKEN
           REPO_ID: "ic6/kk"  # 你的 Space 地址
         run: |
           # 查询 Space 状态信息
-          space_info=$(curl -s -H "Authorization: Bearer $JUPYTER_TOKEN" \
+          space_info=$(curl -s -H "Authorization: Bearer $JUPYTER_TOKEN" \  # ✅ 这里改为 JUPYTER_TOKEN
             "https://huggingface.co/api/spaces/$REPO_ID")
           echo "Space Status Info: $space_info"
           
