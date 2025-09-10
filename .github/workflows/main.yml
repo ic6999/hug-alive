@@ -66,4 +66,3 @@ jobs:
           else
             echo "⚠️  Space state: $space_state"
           fi
-^
