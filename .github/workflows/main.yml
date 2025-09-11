@@ -15,5 +15,6 @@ jobs:
           SPACE_URL: "https://huggingface.co/spaces/ic6/kk" # 你的空间地址
         run: |
           # 简单地访问你的Space首页，Token会证明你的身份
+          # Hugging Face 会将该访问识别为一次有效活动，从而重置Space的休眠倒计时。
           curl -s -L -H "Authorization: Bearer $HF_TOKEN" "$SPACE_URL" > /dev/null
           echo "$(date): Pinged Space to prevent sleep."
